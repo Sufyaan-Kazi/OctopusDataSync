@@ -17,6 +17,19 @@ const OCTOPUS_CONFIG = {
  * Run this function on a daily trigger to fetch the previous days.
  */
 function syncYesterdayOctopus() {
+  // 🚨 STRICT CONFIGURATION VALIDATION
+  if (!OCTOPUS_CONFIG.API_KEY) {
+    throw new Error("❌ CRITICAL: OCTOPUS_API_KEY is missing from Script Properties.");
+  }
+  
+  const hasElec = OCTOPUS_CONFIG.ELEC_MPAN && OCTOPUS_CONFIG.ELEC_SERIAL;
+  const hasGas = OCTOPUS_CONFIG.GAS_MPRN && OCTOPUS_CONFIG.GAS_SERIAL;
+  
+  if (!hasElec && !hasGas) {
+    throw new Error("❌ CRITICAL: No meters configured. Please add ELEC_MPAN/SERIAL or GAS_MPRN/SERIAL to Script Properties.");
+  }
+
+  // Proceed with date calculation if keys exist
   const today = new Date();
   today.setHours(0, 0, 0, 0); 
   
@@ -27,14 +40,14 @@ function syncYesterdayOctopus() {
   const periodTo = today.toISOString();
   
   // 1. Sync Electricity with Electricity Rate
-  if (OCTOPUS_CONFIG.ELEC_MPAN && OCTOPUS_CONFIG.ELEC_SERIAL) {
+  if (hasElec) {
     console.log("⚡ Starting Electricity Sync...");
     const elecUrl = `https://api.octopus.energy/v1/electricity-meter-points/${OCTOPUS_CONFIG.ELEC_MPAN}/meters/${OCTOPUS_CONFIG.ELEC_SERIAL}/consumption/?period_from=${periodFrom}&period_to=${periodTo}`;
     fetchOctopusData(elecUrl, "Octopus Electricity", OCTOPUS_CONFIG.ELEC_UNIT_RATE_PENCE);
   }
 
   // 2. Sync Gas with Gas Rate
-  if (OCTOPUS_CONFIG.GAS_MPRN && OCTOPUS_CONFIG.GAS_SERIAL) {
+  if (hasGas) {
     console.log("🔥 Starting Gas Sync...");
     const gasUrl = `https://api.octopus.energy/v1/gas-meter-points/${OCTOPUS_CONFIG.GAS_MPRN}/meters/${OCTOPUS_CONFIG.GAS_SERIAL}/consumption/?period_from=${periodFrom}&period_to=${periodTo}`;
     fetchOctopusData(gasUrl, "Octopus Gas", OCTOPUS_CONFIG.GAS_UNIT_RATE_PENCE);
